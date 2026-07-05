@@ -23,13 +23,14 @@ void cleanup() {
 
 int main(int argc, const char** argv) {
 	// The main driver function
-    atexit(cleanup);
+    
+	atexit(cleanup);
     
     if (renderMarkdownFile(argv[1], "public/index.html") == EXIT_SUCCESS) {
         // If the files are successfully rendered to HTML files
 
         // Launching the server
-        startLocalServer("3000", "192.168.1.169");
+        startLocalServer("192.168.1.169", 3000);
     }
     
     return 0;

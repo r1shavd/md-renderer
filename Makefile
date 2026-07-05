@@ -1,9 +1,9 @@
 # Compiler settings
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -D_GNU_SOURCE -O2 -Iinclude -Ilib -Ilib/cmark -Ilib/mongoose
+CFLAGS = -Wall -Wextra -std=c99 -D_GNU_SOURCE -O2 -Iinclude -Ilib -Ilib/cmark -Ilib/mongoose -pthread
 
 # Target binary path
-TARGET = bin/mdparser
+TARGET = bin/md-renderer
 
 # All source files explicitly listed
 SRC = src/main.c src/server.c src/renderer.c \
@@ -41,6 +41,6 @@ $(TARGET): $(OBJ)
 
 # Cleaning up binaries and object files
 clean:
-	rm -f $(TARGET) src/*.o lib/mongoose/*.o lib/cmark/*.o
+	rm -f $(TARGET) src/*.o src/*.swp include/*.swp lib/mongoose/*.o lib/cmark/*.o
 
 .PHONY: all clean

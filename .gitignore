@@ -4,7 +4,7 @@ bin/
 # Object files
 src/*.o
 lib/o*.c
-lib/cmake/*.o
+lib/cmark/*.o
 lib/mongoose/*.o
 
 # Test folder (scripts and automation)
