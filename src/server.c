@@ -198,7 +198,7 @@ void* handleClient(void *arg) {
 	if (!buffer) {
 		// If the malloc for the request buffer fails
 		
-		printf("[!] Http server failed to allocate memory for request buffer. %s\n", strerror(errno));
+		printf("[%s!%s] Http server failed to allocate memory for request buffer. %s\n", RED, DEFAULT, strerror(errno));
 		close(clientFileDesc);
 		return NULL;
 	}
@@ -306,8 +306,7 @@ void* handleClient(void *arg) {
 	// Allocating the response buffer and building + sending the HTTP response
 	char *response = (char *) malloc(BUFFER_SIZE * 2 * sizeof(char));
 	if (!response) {
-		printf("[!] Http server failed to allocate memory for response buffer. %s\n",
-		       strerror(errno));
+		printf("[%s!%s] Http server failed to allocate memory for response buffer. %s\n", RED, DEFAULT, strerror(errno));
 		close(clientFileDesc);
 		return NULL;
 	}
@@ -316,8 +315,7 @@ void* handleClient(void *arg) {
 	buildHttpResponse(diskPath, fileExtension, response, &responseLength);
 
 	if (send(clientFileDesc, response, responseLength, 0) == -1) {
-		printf("[!] Failed to send response for %s. %s\n",
-		       diskPath, strerror(errno));
+		printf("[%s!%s] Failed to send response for %s. %s\n", RED, DEFAULT, diskPath, strerror(errno));
 	}
 
 	free(response);
@@ -338,7 +336,7 @@ int startLocalServer(const char *host, int port) {
 	// Creating the server socket file-descriptor
 	int serverFileDesc = socket(AF_INET, SOCK_STREAM, 0);
 	if (serverFileDesc < 0) {
-		printf("[!] Error: server socket creation failed. %s\n", strerror(errno));
+		printf("[%s!%s] Error: server socket creation failed. %s\n", RED, DEFAULT, strerror(errno));
 		return EXIT_FAILURE;
 	}
 
@@ -357,9 +355,9 @@ int startLocalServer(const char *host, int port) {
 	int status = inet_pton(AF_INET, host, &address.sin_addr);
 	if (status <= 0) {
 		if (status == 0) {
-			printf("[!] Invalid IP address format: %s\n", host);
+			printf("[%s!%s] Invalid IP address format: %s\n", RED, DEFAULT, host);
 		} else {
-			printf("[!] inet_pton error. %s\n", strerror(errno));
+			printf("[%s!%s] inet_pton error. %s\n", RED, DEFAULT, strerror(errno));
 		}
 		close(serverFileDesc);
 		return EXIT_FAILURE;
@@ -367,14 +365,14 @@ int startLocalServer(const char *host, int port) {
 
 	// Binding the socket to the designated address and port
 	if (bind(serverFileDesc, (struct sockaddr *) &address, sizeof(address)) < 0) {
-		printf("[!] Binding to %s:%d failed. %s\n", host, port, strerror(errno));
+		printf("[%s!%s] Binding to %s:%d failed. %s\n", RED, DEFAULT, host, port, strerror(errno));
 		close(serverFileDesc);
 		return EXIT_FAILURE;
 	}
 
 	// Starting to listen for incoming TCP connections
 	if (listen(serverFileDesc, 10) < 0) {
-		printf("[!] Http server listen() failed. %s\n", strerror(errno));
+		printf("[%s!%s] Http server listen() failed. %s\n", RED, DEFAULT, strerror(errno));
 		close(serverFileDesc);
 		return EXIT_FAILURE;
 	}
@@ -387,7 +385,7 @@ int startLocalServer(const char *host, int port) {
 	sigaction(SIGINT,  &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
 
-	printf("Visit: http://%s:%d\n", host, port);
+	printf("%sVisit%s: http://%s:%d\n", CYAN, DEFAULT, host, port);
 
 	while (RUNNING) {
 		// Building the fd_set with only the server socket in it
@@ -408,7 +406,7 @@ int startLocalServer(const char *host, int port) {
 			if (errno == EINTR) continue;  // Signal fired — loop back and check RUNNINGi
 
 			// Else, we faced error via pselect
-			printf("[!] Http server failed - pselect(). %s\n", strerror(errno));
+			printf("[%s!%s] Http server failed - pselect(). %s\n", RED, DEFAULT, strerror(errno));
 			break;
 		}
 		if (ready == 0) continue;  // 1-second timeout — loop back and check RUNNING
@@ -428,7 +426,7 @@ int startLocalServer(const char *host, int port) {
 			if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
 				continue;
 			}
-			printf("[!] Connection request failed. %s\n", strerror(errno));
+			printf("[%s!%s] Connection request failed. %s\n", RED, DEFAULT, strerror(errno));
 			continue;
 		}
 
@@ -436,7 +434,7 @@ int startLocalServer(const char *host, int port) {
 		pthread_t threadId;
 		if (pthread_create(&threadId, NULL, handleClient, (void *) clientFileDesc) != 0) {
 			// Thread creation failed — clean up and move on
-			printf("[!] Failed to create client thread. %s\n", strerror(errno));
+			printf("[%s!%s] Failed to create client thread. %s\n", RED, DEFAULT, strerror(errno));
 			close(*clientFileDesc);
 			free(clientFileDesc);
 			continue;

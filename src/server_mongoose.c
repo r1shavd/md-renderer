@@ -2,7 +2,7 @@
 #include <signal.h>
 
 #include "mongoose/mongoose.h"
-#include "server.h"
+#include "server_mongoose.h"
 #include "colors.h"
 
 // To check for SIGKILL and SIGTERM auto exit
@@ -42,7 +42,7 @@ static void networkEventHandler(struct mg_connection* connection, int event, voi
 	}
 }
 
-void startLocalServer(const char* port, char* host) {
+void startLocalServer(const char* host, int port) {
 	/*
 	 This function launches a local server in the public directory to render
 	 the markdown file parsed.
@@ -68,7 +68,7 @@ void startLocalServer(const char* port, char* host) {
 	struct mg_mgr MongooseEventManager;
 	mg_mgr_init(&MongooseEventManager);
 	char url[32];
-	snprintf(url, sizeof(url), "%s:%s", host, port);
+	snprintf(url, sizeof(url), "%s:%d", host, port);
 
 	// Starting the server to listen on url:port
 	printf("[%s~%s] %sVisit: %s%s%s%s\n", YELLOW, DEFAULT, CYAN, DEFAULT, WHITE, url, DEFAULT);

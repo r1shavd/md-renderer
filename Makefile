@@ -5,35 +5,45 @@ CFLAGS = -Wall -Wextra -std=c99 -D_GNU_SOURCE -O2 -Iinclude -Ilib -Ilib/cmark -I
 # Target binary path
 TARGET = bin/md-renderer
 
-# All source files explicitly listed
-SRC = src/main.c src/server.c src/renderer.c \
-      lib/mongoose/mongoose.c \
-      lib/cmark/blocks.c \
-      lib/cmark/inlines.c \
-      lib/cmark/buffer.c \
-      lib/cmark/node.c \
-      lib/cmark/references.c \
-      lib/cmark/render.c \
-      lib/cmark/html.c \
-      lib/cmark/scanners.c \
-      lib/cmark/utf8.c \
-      lib/cmark/iterator.c \
-      lib/cmark/cmark.c \
-      lib/cmark/cmark_ctype.c \
-      lib/cmark/houdini_html_e.c \
-      lib/cmark/houdini_href_e.c \
-      lib/cmark/houdini_html_u.c
+# Base files shared by both build variations
+CMARK_SRC = lib/cmark/blocks.c \
+            lib/cmark/inlines.c \
+            lib/cmark/buffer.c \
+            lib/cmark/node.c \
+            lib/cmark/references.c \
+            lib/cmark/render.c \
+            lib/cmark/html.c \
+            lib/cmark/scanners.c \
+            lib/cmark/utf8.c \
+            lib/cmark/iterator.c \
+            lib/cmark/cmark.c \
+            lib/cmark/cmark_ctype.c \
+            lib/cmark/houdini_html_e.c \
+            lib/cmark/houdini_href_e.c \
+            lib/cmark/houdini_html_u.c
 
-# Automatically convert the entire SRC list of .c files into .o files
-OBJ = $(SRC:.c=.o)
+BASE_SRC = src/main.c src/renderer.c $(CMARK_SRC)
 
-# Default rule
+# Default build sources (No Mongoose)
+DEFAULT_SRC = $(BASE_SRC) src/server.c
+DEFAULT_OBJ = $(DEFAULT_SRC:.c=.o)
+
+# Mongoose build sources
+MONGOOSE_SRC = $(BASE_SRC) src/server_mongoose.c lib/mongoose/mongoose.c
+MONGOOSE_OBJ = $(MONGOOSE_SRC:.c=.o)
+
+# Default rule (make)
 all: $(TARGET)
 
-# Link ALL object files automatically using $(OBJ)
-$(TARGET): $(OBJ)
+# Standard target rule using default objects
+$(TARGET): $(DEFAULT_OBJ)
 	@mkdir -p bin
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
+	$(CC) $(CFLAGS) -o $(TARGET) $(DEFAULT_OBJ)
+
+# Mongoose option rule (make mongoose)
+mongoose: $(MONGOOSE_OBJ)
+	@mkdir -p bin
+	$(CC) $(CFLAGS) -o $(TARGET) $(MONGOOSE_OBJ)
 
 # Rule to compile any .c file into a .o file
 %.o: %.c
@@ -43,4 +53,4 @@ $(TARGET): $(OBJ)
 clean:
 	rm -f $(TARGET) src/*.o src/*.swp include/*.swp lib/mongoose/*.o lib/cmark/*.o
 
-.PHONY: all clean
+.PHONY: all mongoose clean
