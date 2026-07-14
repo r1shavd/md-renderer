@@ -1,5 +1,6 @@
 # The binaries
 bin/
+build/
 
 # Object files
 src/*.o
@@ -9,3 +10,5 @@ lib/mongoose/*.o
 
 # Test folder (scripts and automation)
 tests/
+public/
+TASKLIST.md

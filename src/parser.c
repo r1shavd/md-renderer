@@ -3,9 +3,10 @@
 #include <string.h>
 #include <errno.h>
 
-#include "renderer.h"
+#include "parser.h"
 
-int renderMarkdownFile(const char* markdownfile, char* htmlfile) {
+int parse_markdown(const char* markdownfile, const char* htmlfile)
+{
 	/*
 	This function renders the markdown file data from markdown file
 	and then creates a temporary html file to host at the server.
@@ -19,7 +20,6 @@ int renderMarkdownFile(const char* markdownfile, char* htmlfile) {
 	EXIT_SUCCESS -> successfully rendered
 	*/
 
-	// Reading the markdown file
     FILE *markdownfile_ptr = fopen(markdownfile, "rb");
     if (markdownfile_ptr == NULL) {
         // If the markdown file failed to open
@@ -34,74 +34,65 @@ int renderMarkdownFile(const char* markdownfile, char* htmlfile) {
     // Reading the file size
     // - - -
     if (fseek(markdownfile_ptr, 0, SEEK_END) != 0) {
-    	// If it fails to seek end of the file 
-
-	    printf("[!] Error seeking to end of file: %s\n", strerror(errno));
+	    fprintf(stderr, "[!] Error seeking to end of file: %s\n", strerror(errno));
 	    fclose(markdownfile_ptr);
 	    return EXIT_FAILURE;
 	}
 	//
 	long file_size = ftell(markdownfile_ptr);
 	if (file_size == -1L) {
-		// If it fails counting the file size
-
-	    printf("[!] Error measuring file size: %s\n", strerror(errno));
+	    fprintf(stderr, "[!] Error measuring file size: %s\n", strerror(errno));
 	    fclose(markdownfile_ptr);
 	    return EXIT_FAILURE;
 	}
 	//
 	if (fseek(markdownfile_ptr, 0, SEEK_SET) != 0) {
-		// If it fails to rewing the file seek
-
-	    printf("[!] Error rewinding file: %s\n", strerror(errno));
+	    fprintf(stderr, "[!] Error rewinding file: %s\n", strerror(errno));
 	    fclose(markdownfile_ptr);
 	    return EXIT_FAILURE;
 	}
 	// - - -
 
     // Dynamically allocating a string to capture all the data
-    char *markdownData = malloc( file_size+1 );
-    if (!markdownData) {
+    char *markdown_contents = malloc( file_size+1 );
+    if (!markdown_contents) {
         fprintf(stderr, "Memory allocation failed! File is too large.\n");
         fclose(markdownfile_ptr);
         return EXIT_FAILURE;
     }
 
     // Reading the markdown file data
-    size_t bytes_read = fread(markdownData, 1, file_size, markdownfile_ptr);
+    size_t bytes_read = fread(markdown_contents, 1, file_size, markdownfile_ptr);
     if (bytes_read != (size_t) file_size && ferror(markdownfile_ptr)) {
-	    // If the fread() fails, we exit after cleanup
-
-	    printf("[%s!%s] File reading error. %s%s%s\n", RED, DEFAULT, WHITE, strerror(errno), DEFAULT);
-	    free(markdownData);
+	    fprintf(stderr, "[%s!%s] File reading error. %s%s%s\n", RED, DEFAULT, WHITE, strerror(errno), DEFAULT);
+	    free(markdown_contents);
 	    fclose(markdownfile_ptr);
 	    return EXIT_FAILURE;
 	}
-    markdownData[bytes_read] = '\0'; // Null-terminate it like a C string
-    fclose(markdownfile_ptr);
-    printf("[%s~%s] %sContents reading done: %s%s%s\n", GREEN, WHITE, DEFAULT, YELLOW, markdownfile, DEFAULT);
 
-    // Creating a new html file to store the rendered data temporarily
+    markdown_contents[bytes_read] = '\0'; // Null-terminate it like a C string
+    fclose(markdownfile_ptr);
+    printf("[~] Contents reading done: %s\n", markdownfile);
+
+
     FILE *htmlfile_ptr = fopen(htmlfile, "wb");
     if (!htmlfile_ptr) {
-        // If there is an error with HTML file creation, we exit after cleanup
+        if (errno == EACCES)
+            fprintf(stderr, "[!] Permission denied at configured directory\n");
+        else
+            fprintf(stderr, "[!] %s\n", strerror(errno));
 
-        if (errno == EACCES)	printf("[%s!%s] %sPermission denied at configured directory%s\n", RED, DEFAULT, WHITE, DEFAULT);
-       	else	printf("[%s!%s] %s%s%s\n", RED, DEFAULT, WHITE, strerror(errno), DEFAULT);
-
-       	free(markdownData);
+       	free(markdown_contents);
         return EXIT_FAILURE;
     }
 
-    // Rendering the markdown file data to HTML version
-    char *htmlData = cmark_markdown_to_html(markdownData, bytes_read, CMARK_OPT_DEFAULT);
-    free(markdownData);
-    printf("[%s~%s] Markdown file data rendering done\n", YELLOW, DEFAULT);
+    // Rendering the markdown data to HTML 
+    char *html_contents = cmark_markdown_to_html(markdown_contents, bytes_read, CMARK_OPT_DEFAULT);
+    free(markdown_contents);
+    printf("[~] Markdown file data rendering done\n");
 
-    if (!htmlData) {
-    	// If the conversion of markdown data via cmark lib route fails
-
-    	printf("[%s!%s] %sFailed to render the markdown data%s\n", RED, DEFAULT, WHITE, DEFAULT);
+    if (!html_contents) {
+    	fprintf(stderr, "[%s!%s] %sFailed to render the markdown data%s\n", RED, DEFAULT, WHITE, DEFAULT);
     	fclose(htmlfile_ptr);
     	return EXIT_FAILURE;
     }
@@ -109,22 +100,18 @@ int renderMarkdownFile(const char* markdownfile, char* htmlfile) {
     // Saving the size of the converted data[bytes_read] size
     // There will be a significant difference in size due to rendering
     // like * gets converted to <li> .. </li> by the parser
-    size_t bytes_html = strlen(htmlData);
+    size_t bytes_html = strlen(html_contents);
 
     // Writing the rendered data to html file
-    size_t bytes_written = fwrite(htmlData, 1, bytes_html, htmlfile_ptr);
+    size_t bytes_written = fwrite(html_contents, 1, bytes_html, htmlfile_ptr);
     if (bytes_written < bytes_html) {
-    	// If the file writting fails (like in terms of size converted and size written)
-    	// We exit after cleaning up
-
-    	fprintf(stderr, "[%s!%s] %s\n", RED, DEFAULT, strerror(errno));
-    	free(htmlData);
+    	fprintf(stderr, "[!] %s\n", strerror(errno));
+    	free(html_contents);
     	fclose(htmlfile_ptr);
     	return EXIT_FAILURE;
     }
 
-    // Exiting and cleaning in case of task done
-    free(htmlData);
+    free(html_contents);
 
 	if (fclose(htmlfile_ptr) == EOF) {
 	    printf("[%s!%s] %s%s%s\n",
@@ -132,6 +119,6 @@ int renderMarkdownFile(const char* markdownfile, char* htmlfile) {
 	    return EXIT_FAILURE;
 	}
 
-    printf("[%s~%s] Markdown data rendered to %s%s%s\n", YELLOW, DEFAULT, WHITE, htmlfile, DEFAULT);
+    printf("[~] Markdown data rendered to %s\n", htmlfile);
 	return EXIT_SUCCESS;
 }

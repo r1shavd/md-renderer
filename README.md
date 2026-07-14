@@ -1,6 +1,10 @@
 # Markdown Renderer
 
 A lightweight tool that parses Markdown files into HTML and serves them locally using a built-in HTTP server.
+I made this tool to help me read through documentation of projects written in markdown format, when I working 
+on remote servers via ssh tty access only. Its actually irittating copy pasting into browser based parsers.
+This can be used when using Vi, like run in the background while editing. I made it to solve my problem, if it 
+does yours too, feel free to contribute to it.
 
 ## Features
 - **Markdown Parsing:** Powered by [cmark](https://github.com/common-mark/cmark) for reliable CommonMark compliance.
